@@ -62,3 +62,40 @@
 
 ;; Counter for auto-incrementing IDs
 (define-data-var last-id uint u0)
+
+;; ========== Internal Functions ==========
+(define-private (add-id-to-principal-list
+    (user principal)
+    (id uint)
+  )
+  (let (
+      (current-list-data (default-to { ids: (list) } (map-get? tags-by-creator { creator: user })))
+      (current-list (get ids current-list-data))
+      (new-list (unwrap! (as-max-len? (append current-list id) u50) current-list))
+    )
+    (begin
+      (map-set tags-by-creator { creator: user } { ids: new-list })
+      new-list
+    )
+  )
+)
+
+;; Check if current block height is past the expiration
+(define-private (is-expired (expires-at uint))
+  (>= stacks-block-height expires-at)
+)
+
+;; ========== Read-Only Functions ==========
+
+;; Get the current ID counter
+(define-read-only (get-last-id)
+  (ok (var-get last-id))
+)
+
+;; Get details of a specific PayTag
+(define-read-only (get-pay-tag (id uint))
+  (match (map-get? pay-tags { id: id })
+    entry (ok entry)
+    (err ERR-NOT-FOUND)
+  )
+)
