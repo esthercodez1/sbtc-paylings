@@ -129,3 +129,36 @@
     (err ERR-NOT-FOUND)
   )
 )
+
+;; ========== Public Functions ==========
+;; Create a new PayTag
+(define-public (create-pay-tag
+    (amount uint)
+    (expires-in uint)
+    (memo (optional (string-ascii 256)))
+  )
+  (let (
+      (new-id (+ (var-get last-id) u1))
+      (expiration-height (+ stacks-block-height expires-in))
+      (recipient tx-sender)
+    )
+    ;; Default recipient is sender, could be a parameter
+    (begin
+      ;; Validate inputs
+      (asserts! (> amount u0) (err ERR-INVALID-AMOUNT))
+      (asserts! (<= expires-in MAX-EXPIRATION-BLOCKS)
+        (err ERR-MAX-EXPIRATION-EXCEEDED)
+      )
+
+      ;; Set new ID and add to map
+      (var-set last-id new-id)
+      (map-set pay-tags { id: new-id } {
+        creator: tx-sender,
+        recipient: recipient,
+        amount: amount,
+        created-at: stacks-block-height,
+        expires-at: expiration-height,
+        memo: memo,
+        state: STATE-PENDING,
+        payment-tx: none,
+      })
