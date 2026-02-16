@@ -162,3 +162,52 @@
         state: STATE-PENDING,
         payment-tx: none,
       })
+
+      ;; Add to creator's index - store result locally to discard it
+      (let ((creator-result (add-id-to-principal-list tx-sender new-id)))
+        ;; If recipient is different from creator, add to recipient's index too
+        (if (not (is-eq recipient tx-sender))
+          ;; Store the result locally, effectively discarding it
+          (let ((recipient-result (add-id-to-principal-list recipient new-id)))
+            true
+          )
+          ;; Both branches return bool
+          true
+        )
+      )
+
+      ;; Emit event
+      (print {
+        event: "pay-tag-created",
+        id: new-id,
+        creator: tx-sender,
+        amount: amount,
+      })
+      (ok new-id)
+    )
+  )
+)
+
+;; Cancel a PayTag (creator only)
+(define-public (cancel-pay-tag (id uint))
+  (let ((tag (unwrap! (map-get? pay-tags { id: id }) (err ERR-NOT-FOUND))))
+    (begin
+      ;; Verify sender is the creator
+      (asserts! (is-eq tx-sender (get creator tag)) (err ERR-UNAUTHORIZED))
+
+      ;; Verify the tag is still pending
+      (asserts! (is-eq (get state tag) STATE-PENDING) (err ERR-NOT-PENDING))
+
+      ;; Update tag state to canceled
+      (map-set pay-tags { id: id } (merge tag { state: STATE-CANCELED }))
+
+      ;; Emit event
+      (print {
+        event: "pay-tag-canceled",
+        id: id,
+        creator: tx-sender,
+      })
+      (ok id)
+    )
+  )
+)
