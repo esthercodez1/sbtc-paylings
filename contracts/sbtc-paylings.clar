@@ -28,3 +28,37 @@
 
 ;; Maximum expiration time (30 days in blocks, assuming ~10 min per block)
 (define-constant MAX-EXPIRATION-BLOCKS u4320) ;; ~30 days
+
+;; ========== Data Maps ==========
+
+;; Main map to store payment tags
+(define-map pay-tags
+  { id: uint }
+  {
+    creator: principal,
+    recipient: principal,
+    amount: uint,
+    created-at: uint,
+    expires-at: uint,
+    memo: (optional (string-ascii 256)),
+    state: (string-ascii 16),
+    payment-tx: (optional (buff 32)), ;; txid when paid
+  }
+)
+
+;; Index of tags by creator
+(define-map tags-by-creator
+  { creator: principal }
+  { ids: (list 50 uint) }
+)
+
+;; Index of tags by recipient
+(define-map tags-by-recipient
+  { recipient: principal }
+  { ids: (list 50 uint) }
+)
+
+;; ========== Variables ==========
+
+;; Counter for auto-incrementing IDs
+(define-data-var last-id uint u0)
