@@ -211,3 +211,36 @@
     )
   )
 )
+
+;; Mark a PayTag as expired (can be called by anyone, but only if actually expired)
+(define-public (mark-expired (id uint))
+  (let ((tag (unwrap! (map-get? pay-tags { id: id }) (err ERR-NOT-FOUND))))
+    (begin
+      ;; Verify the tag is still pending
+      (asserts! (is-eq (get state tag) STATE-PENDING) (err ERR-NOT-PENDING))
+
+      ;; Verify the tag has actually expired
+      (asserts! (is-expired (get expires-at tag)) (err u107))
+
+      ;; Update tag state to expired
+      (map-set pay-tags { id: id } (merge tag { state: STATE-EXPIRED }))
+
+      ;; Emit event
+      (print {
+        event: "pay-tag-expired",
+        id: id,
+      })
+      (ok id)
+    )
+  )
+)
+
+;; Batch function to get multiple tags (useful for UIs)
+(define-public (get-multiple-tags (ids (list 20 uint)))
+  (ok (map get-tag-or-none ids))
+)
+
+;; Helper for batch function
+(define-private (get-tag-or-none (id uint))
+  (map-get? pay-tags { id: id })
+)
