@@ -99,3 +99,33 @@
     (err ERR-NOT-FOUND)
   )
 )
+
+;; Get IDs of all tags created by a principal
+(define-read-only (get-creator-tags (creator principal))
+  (match (map-get? tags-by-creator { creator: creator })
+    entry (ok (get ids entry))
+    (ok (list))
+  )
+)
+
+;; Get IDs of all tags where principal is recipient
+(define-read-only (get-recipient-tags (recipient principal))
+  (match (map-get? tags-by-recipient { recipient: recipient })
+    entry (ok (get ids entry))
+    (ok (list))
+  )
+)
+
+;; Check if a tag is expired but not marked as expired yet
+(define-read-only (check-tag-expired (id uint))
+  (match (map-get? pay-tags { id: id })
+    tag (if (and
+        (is-eq (get state tag) STATE-PENDING)
+        (is-expired (get expires-at tag))
+      )
+      (ok true)
+      (ok false)
+    )
+    (err ERR-NOT-FOUND)
+  )
+)
